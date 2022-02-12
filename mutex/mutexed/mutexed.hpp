@@ -13,29 +13,9 @@ class Mutexed {
   using MutexImpl = twist::stdlike::mutex;
 
   class UniqueRef {
-    class SafeAccess {
-     public:
-      explicit SafeAccess(Mutexed<T>& base)
-          : lock_(base.mutex_), obj_(base.object_) {
-      }
-
-      SafeAccess() = delete;
-
-      T& operator*() {
-        return obj_;
-      }
-
-      T* operator->() {
-        return &obj_;
-      }
-
-     private:
-      std::lock_guard<MutexImpl> lock_;
-      T& obj_;
-    };
-
    public:
-    explicit UniqueRef(Mutexed<T>& base) : base_(base) {
+    explicit UniqueRef(Mutexed<T>& base)
+        : obj_(base.object_), lock_(base.mutex_) {
     }
 
     // Non-copyable
@@ -44,16 +24,17 @@ class Mutexed {
     // Non-movable
     UniqueRef(UniqueRef&&) = delete;
 
-    SafeAccess operator*() {
-      return SafeAccess(base_);
+    T& operator*() {
+      return obj_;
     }
 
-    SafeAccess operator->() {
-      return SafeAccess(base_);
+    T* operator->() {
+      return &obj_;
     }
 
    private:
-    Mutexed<T>& base_;
+    T& obj_;
+    std::lock_guard<MutexImpl> lock_;
   };
 
  public:
