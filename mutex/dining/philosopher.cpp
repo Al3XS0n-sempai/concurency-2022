@@ -37,13 +37,8 @@ void Philosopher::EatWithForks() {
 
 // Release left_fork_ and right_fork_
 void Philosopher::ReleaseForks() {
-  if (seat_ != 1) {
-    right_fork_.unlock();
-    left_fork_.unlock();
-  } else {
-    left_fork_.unlock();
-    right_fork_.unlock();
-  }
+  left_fork_.unlock();
+  right_fork_.unlock();
 }
 
 void Philosopher::Think() {
