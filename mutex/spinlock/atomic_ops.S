@@ -13,10 +13,10 @@ FUNCTION_NAME(AtomicLoad):
     retq
 
 FUNCTION_NAME(AtomicStore):
-    movq %rsi, (%rdi)
+    xchgq %rsi, (%rdi)
     retq
 
 FUNCTION_NAME(AtomicExchange):
-    xchg (%rdi), %rsi
-    xchg %rsi, %rax
+    xchgq (%rdi), %rsi
+    movq %rsi, %rax
     retq
