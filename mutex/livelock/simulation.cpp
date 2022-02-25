@@ -28,7 +28,6 @@ TEST_SUITE(TrickyLock) {
           // TrickyLock::Lock
           while (thread_count++ > 0) {
             Yield();
-            Yield();
             --thread_count;
           }
           // Spinlock acquired
@@ -36,7 +35,7 @@ TEST_SUITE(TrickyLock) {
           {
             // Critical section
             ++cs_count;
-            ASSERT_TRUE_M(cs_count < 3, "Too many critical sections");
+            ASSERT_TRUE_M(cs_count < 2, "Too many critical sections");
             // End of critical section
           }
 
