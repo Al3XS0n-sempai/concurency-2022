@@ -29,13 +29,13 @@ class CyclicBarrier {
     if (arrived_ == thread_count_) {
       gen_ ^= 1;
       arrived_ = 0;
-      cv_.notify_all();
+      all_arrived_.notify_all();
     } else {
       size_t my_gen = gen_;
       while (my_gen == gen_) {
-        cv_.wait(lock);
+        all_arrived_.wait(lock);
       }
-      //      cv_.wait(lock, [&] {
+      //      all_arrived_.wait(lock, [&] {
       //        return my_gen != gen_;
       //      });
     }
@@ -44,7 +44,7 @@ class CyclicBarrier {
  private:
   size_t thread_count_;
   size_t gen_{0}, arrived_{0};
-  twist::stdlike::condition_variable cv_;
+  twist::stdlike::condition_variable all_arrived_;
   twist::stdlike::mutex mutex_;
 };
 
