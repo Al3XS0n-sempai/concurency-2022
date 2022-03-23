@@ -12,8 +12,6 @@ class Fiber {
  public:
   explicit Fiber(Scheduler* scheduler, Routine routine);
 
-  //  ~Fiber();
-
   void Run();
   // ~ System calls
   void Schedule(Routine routine);

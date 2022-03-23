@@ -1,6 +1,7 @@
 #include <exe/fibers/core/stacks.hpp>
 
 #include <vector>
+#include <twist/stdlike/mutex.hpp>
 
 using context::Stack;
 
@@ -11,6 +12,7 @@ namespace exe::fibers {
 class StackAllocator {
  public:
   Stack Allocate() {
+    std::lock_guard<twist::stdlike::mutex> lock(mutex_);
     if (pool_.empty()) {
       return AllocateNewStack();
     }
@@ -20,6 +22,7 @@ class StackAllocator {
   }
 
   void Release(Stack stack) {
+    std::lock_guard<twist::stdlike::mutex> lock(mutex_);
     pool_.push_back(std::move(stack));
   }
 
@@ -31,6 +34,7 @@ class StackAllocator {
 
  private:
   std::vector<Stack> pool_;
+  twist::stdlike::mutex mutex_;
 };
 
 //////////////////////////////////////////////////////////////////////

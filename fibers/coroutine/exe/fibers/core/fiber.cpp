@@ -19,10 +19,6 @@ Fiber::Fiber(Scheduler* scheduler, Routine routine)
       scheduler_(scheduler) {
 }
 
-// Fiber::~Fiber() {
-//  ReleaseStack(std::move(stack_));
-//}
-
 void Fiber::Run() {
   tp::Submit(*scheduler_, [this]() {
     this->Step();
@@ -41,6 +37,7 @@ void Fiber::Step() {
   current = this;
   coroutine_.Resume();
   if (coroutine_.IsCompleted()) {
+    ReleaseStack(std::move(this->stack_));
     delete this;
     return;
   }
