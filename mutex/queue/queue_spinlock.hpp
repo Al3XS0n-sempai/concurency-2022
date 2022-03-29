@@ -27,7 +27,7 @@ class QueueSpinLock {
     friend class QueueSpinLock;
 
    public:
-    explicit Guard(QueueSpinLock& spinlock) : spinlock_(spinlock), node_() {
+    explicit Guard(QueueSpinLock& spinlock) : spinlock_(spinlock) {
       node_ = new Node;
       spinlock_.Acquire(this);
     }
