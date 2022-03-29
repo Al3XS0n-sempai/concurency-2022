@@ -17,9 +17,6 @@ class Future {
   friend class Promise;
 
  public:
-  explicit Future(std::shared_ptr<detail::SharedData<T>> data) : chanel_(data) {
-  }
-
   // Non-copyable
   Future(const Future&) = delete;
   Future& operator=(const Future&) = delete;
@@ -31,15 +28,16 @@ class Future {
   // One-shot
   // Wait for result (value or exception)
   T Get() {
-    return chanel_->GetValue();
+    return channel_->GetValue();
   }
 
  private:
-  Future() {
+  explicit Future(std::shared_ptr<detail::SharedData<T>> data)
+      : channel_(data) {
   }
 
  private:
-  std::shared_ptr<detail::SharedData<T>> chanel_;
+  std::shared_ptr<detail::SharedData<T>> channel_;
 };
 
 }  // namespace stdlike

@@ -26,24 +26,28 @@ class Promise {
 
   // One-shot
   Future<T> MakeFuture() {
-    chanel_ = std::make_shared<detail::SharedData<T>>();
-    return Future<T>(chanel_);
+    assert(channel_ == nullptr);
+    channel_ = std::make_shared<detail::SharedData<T>>();
+    return Future<T>(channel_);
   }
 
   // One-shot
   // Fulfill promise with value
   void SetValue(T value) {
-    chanel_->SetValue(std::move(value));
+    assert(!std::exchange(set_called_, true));
+    channel_->SetValue(std::move(value));
   }
 
   // One-shot
   // Fulfill promise with exception
   void SetException(std::exception_ptr exc_ptr) {
-    chanel_->SetException(std::move(exc_ptr));
+    assert(!std::exchange(set_called_, true));
+    channel_->SetException(std::move(exc_ptr));
   }
 
  private:
-  std::shared_ptr<detail::SharedData<T>> chanel_{nullptr};
+  std::shared_ptr<detail::SharedData<T>> channel_{nullptr};
+  bool set_called_{false};
 };
 
 }  // namespace stdlike
