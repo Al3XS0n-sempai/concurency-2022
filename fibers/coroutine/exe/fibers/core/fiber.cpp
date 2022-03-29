@@ -19,14 +19,14 @@ Fiber::Fiber(Scheduler* scheduler, Routine routine)
       scheduler_(scheduler) {
 }
 
-void Fiber::Run() {
-  tp::Submit(*scheduler_, [this]() {
-    this->Step();
-  });
+Scheduler& Fiber::GetCurrentScheduler() {
+  return *scheduler_;
 }
 
-void Fiber::Schedule(Routine routine) {
-  Go(*scheduler_, std::move(routine));
+void Fiber::Schedule() {
+  scheduler_->Submit([this] {
+    this->Step();
+  });
 }
 
 void Fiber::Yield() {
@@ -36,12 +36,13 @@ void Fiber::Yield() {
 void Fiber::Step() {
   current = this;
   coroutine_.Resume();
+  current = nullptr;
   if (coroutine_.IsCompleted()) {
     ReleaseStack(std::move(this->stack_));
     delete this;
     return;
   }
-  Run();
+  Schedule();
 }
 
 Fiber& Fiber::Self() {
@@ -54,13 +55,11 @@ Fiber& Fiber::Self() {
 
 void Go(Scheduler& scheduler, Routine routine) {
   Fiber* fiber = new Fiber(&scheduler, std::move(routine));
-  //  tp::Submit(scheduler, [fiber] {
-  fiber->Run();
-  //  });
+  fiber->Schedule();
 }
 
 void Go(Routine routine) {
-  Fiber::Self().Schedule(std::move(routine));
+  Go(Fiber::Self().GetCurrentScheduler(), std::move(routine));
 }
 
 namespace self {

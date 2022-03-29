@@ -12,9 +12,10 @@ class Fiber {
  public:
   explicit Fiber(Scheduler* scheduler, Routine routine);
 
-  void Run();
+  Scheduler& GetCurrentScheduler();
+
   // ~ System calls
-  void Schedule(Routine routine);
+  void Schedule();
   void Yield();
 
   static Fiber& Self();

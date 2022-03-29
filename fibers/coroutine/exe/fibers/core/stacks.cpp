@@ -12,13 +12,14 @@ namespace exe::fibers {
 class StackAllocator {
  public:
   Stack Allocate() {
-    std::lock_guard<twist::stdlike::mutex> lock(mutex_);
-    if (pool_.empty()) {
-      return AllocateNewStack();
+    std::unique_lock<twist::stdlike::mutex> lock(mutex_);
+    if (!pool_.empty()) {
+      Stack stack = std::move(pool_.back());
+      pool_.pop_back();
+      return stack;
     }
-    Stack stack = std::move(pool_.back());
-    pool_.pop_back();
-    return stack;
+    lock.unlock();
+    return AllocateNewStack();
   }
 
   void Release(Stack stack) {
