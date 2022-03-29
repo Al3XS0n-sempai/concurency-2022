@@ -24,26 +24,24 @@ class CyclicBarrier {
 
   // Blocks until all participants have invoked Arrive()
   void Arrive() {
-    std::unique_lock<twist::stdlike::mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     arrived_++;
     if (arrived_ == thread_count_) {
-      gen_ ^= 1;
+      epoch_ ^= 1;
       arrived_ = 0;
       all_arrived_.notify_all();
     } else {
-      size_t my_gen = gen_;
-      while (my_gen == gen_) {
+      const size_t my_epoch_ = epoch_;
+      while (my_epoch_ == epoch_) {
         all_arrived_.wait(lock);
       }
-      //      all_arrived_.wait(lock, [&] {
-      //        return my_gen != gen_;
-      //      });
     }
   }
 
  private:
-  size_t thread_count_;
-  size_t gen_{0}, arrived_{0};
+  const size_t thread_count_;
+  size_t epoch_{0};
+  size_t arrived_{0};
   twist::stdlike::condition_variable all_arrived_;
   twist::stdlike::mutex mutex_;
 };
