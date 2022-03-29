@@ -31,8 +31,8 @@ class CyclicBarrier {
       arrived_ = 0;
       all_arrived_.notify_all();
     } else {
-      const size_t my_epoch_ = epoch_;
-      while (my_epoch_ == epoch_) {
+      const size_t my_epoch = epoch_;
+      while (my_epoch == epoch_) {
         all_arrived_.wait(lock);
       }
     }
