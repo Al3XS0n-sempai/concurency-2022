@@ -1,6 +1,7 @@
 #pragma once
 
 #include <futures/future.hpp>
+#include <futures/detail.hpp>
 
 #include <memory>
 
@@ -12,7 +13,7 @@ namespace stdlike {
 template <typename T>
 class Promise {
  public:
-  Promise() : chanel_(std::make_shared<detail::Shared_data<T>>()) {
+  Promise() {
   }
 
   // Non-copyable
@@ -25,29 +26,24 @@ class Promise {
 
   // One-shot
   Future<T> MakeFuture() {
+    chanel_ = std::make_shared<detail::SharedData<T>>();
     return Future<T>(chanel_);
   }
 
   // One-shot
   // Fulfill promise with value
   void SetValue(T value) {
-    std::lock_guard<twist::stdlike::mutex> lock(chanel_->mutex_);
-    chanel_->contain_value_ = 1;
-    chanel_->value_.template emplace<0>(std::move(value));
-    chanel_->ready_to_read_.notify_one();
+    chanel_->SetValue(std::move(value));
   }
 
   // One-shot
   // Fulfill promise with exception
   void SetException(std::exception_ptr exc_ptr) {
-    std::lock_guard<twist::stdlike::mutex> lock(chanel_->mutex_);
-    chanel_->contain_value_ = 2;
-    chanel_->value_.template emplace<1>(std::move(exc_ptr));
-    chanel_->ready_to_read_.notify_one();
+    chanel_->SetException(std::move(exc_ptr));
   }
 
  private:
-  std::shared_ptr<stdlike::detail::Shared_data<T>> chanel_;
+  std::shared_ptr<detail::SharedData<T>> chanel_{nullptr};
 };
 
 }  // namespace stdlike
