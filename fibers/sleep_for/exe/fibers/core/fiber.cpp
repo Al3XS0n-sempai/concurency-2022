@@ -37,8 +37,10 @@ void Fiber::Suspend() {
 }
 
 void Fiber::SleepFor(Millis delay) {
-  timer_ = new asio::steady_timer(*scheduler_, delay);
+  asio::steady_timer timer{*scheduler_, delay};
+  timer_ = &timer;
   Suspend();
+  timer_ = nullptr;
 }
 
 void Fiber::Resume() {
@@ -63,14 +65,9 @@ Fiber& Fiber::Self() {
 
 void Fiber::Dispatch() {
   if (suspended_) {
-    if (timer_->expires_from_now().count() > 0) {
-      scheduler_->post([this] {
-        this->Dispatch();
-      });
-    } else {
-      delete timer_;
-      Resume();
-    }
+    timer_->async_wait([this](std::error_code) {
+      this->Resume();
+    });
     return;
   }
   if (routine_.IsCompleted()) {
