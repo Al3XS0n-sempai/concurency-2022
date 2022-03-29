@@ -24,7 +24,7 @@ class Semaphore {
   // Acquires a permit from this semaphore,
   // blocking until one is available
   void Acquire() {
-    std::unique_lock<twist::stdlike::mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     while (ticket_count_ == 0) {
       free_ticket_.wait(lock);
     }
@@ -33,7 +33,7 @@ class Semaphore {
 
   // Releases a permit, returning it to the semaphore
   void Release() {
-    std::unique_lock<twist::stdlike::mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     ticket_count_++;
     free_ticket_.notify_one();
   }
