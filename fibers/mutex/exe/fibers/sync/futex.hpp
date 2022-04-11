@@ -25,14 +25,14 @@ class FutexLike {
 
   // Park current fiber if cell.load() == `old`
   void ParkIfEqual(T old) {
-    LOG_SIMPLE("old is equal to " << old)
-    std::unique_lock lock(spinlock_);
+    spinlock_.lock();
     if (old != cell_.load()) {
+      spinlock_.unlock();
       return;
     }
     FutexAwaiter awaiter(Fiber::Self().GetHandler());
     queue_.PushBack(&awaiter);
-    lock.unlock();
+    spinlock_.unlock();
 
     self::Suspend(&awaiter);
   }
@@ -42,7 +42,8 @@ class FutexLike {
     if (queue_.IsEmpty()) {
       return;
     }
-    queue_.PopFront()->Schedule();
+    FutexAwaiter* awaiter = queue_.PopFront();
+    (*awaiter).Schedule();
   }
 
   void WakeAll() {
@@ -54,7 +55,7 @@ class FutexLike {
 
  private:
   exe::support::SpinLock spinlock_;
-  wheels::IntrusiveList<IAwaiter> queue_;
+  wheels::IntrusiveList<FutexAwaiter> queue_;
   twist::stdlike::atomic<T>& cell_;
 };
 

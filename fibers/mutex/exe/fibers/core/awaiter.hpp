@@ -7,7 +7,7 @@
 
 namespace exe::fibers {
 
-struct IAwaiter : public wheels::IntrusiveListNode<IAwaiter> {
+struct IAwaiter {
   explicit IAwaiter(FiberHandle handler) : handler_(handler) {
   }
 
@@ -32,7 +32,7 @@ struct YieldAwaiter : IAwaiter {
   }
 };
 
-struct FutexAwaiter : IAwaiter {
+struct FutexAwaiter : IAwaiter, public wheels::IntrusiveListNode<FutexAwaiter> {
   explicit FutexAwaiter(FiberHandle handler) : IAwaiter(handler) {
     spinlock_.lock();
   }
@@ -42,7 +42,7 @@ struct FutexAwaiter : IAwaiter {
   }
 
   void Schedule() {
-    std::lock_guard lock(spinlock_);
+    spinlock_.lock();
     handler_.Schedule();
   }
 

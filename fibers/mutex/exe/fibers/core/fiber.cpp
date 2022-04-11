@@ -63,8 +63,8 @@ void Fiber::Suspend() {
 }
 
 void Fiber::Resume() {
-  awaiter_ = nullptr;
-  Schedule();
+  //  awaiter_ = nullptr;
+  //  Schedule();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -72,7 +72,6 @@ void Fiber::Resume() {
 // API Implementation
 
 void Go(Scheduler& scheduler, Routine routine) {
-  LOG_SIMPLE("Creating new fiber\n")
   auto fiber = new Fiber(&scheduler, std::move(routine));
   fiber->Schedule();
 }

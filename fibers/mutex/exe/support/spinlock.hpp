@@ -1,7 +1,6 @@
 #pragma once
 
 #include <twist/stdlike/atomic.hpp>
-#include <wheels/support/cpu.hpp>
 
 namespace exe::support {
 
@@ -10,13 +9,12 @@ namespace exe::support {
 class SpinLock {
  public:
   void Lock() {
-    while (locked_.exchange(1) == 1) {
-      wheels::SpinLockPause();
+    while (locked_.exchange(true)) {
     }
   }
 
   void Unlock() {
-    locked_.store(0);
+    locked_.store(false);
   }
 
   // BasicLockable
@@ -30,7 +28,7 @@ class SpinLock {
   }
 
  private:
-  twist::stdlike::atomic<int> locked_;
+  twist::stdlike::atomic<bool> locked_{false};
 };
 
 }  // namespace exe::support
