@@ -14,19 +14,25 @@ ThreadPool::ThreadPool(size_t workers_count) {
   for (size_t i = 0; i < workers_count; ++i) {
     workers_.push_back(twist::stdlike::thread([this] {
       pool = this;
-      while (true) {
-        std::optional<Task> task = queue_.Take();
-        if (task == std::nullopt) {
-          return;
-        }
-        try {
-          (task.value())();
-        } catch (...) {
-        };
-        task_counter_.Dec();
-      }
+
+      WorkerRoutine();
     }));
   }
+}
+
+void ThreadPool::WorkerRoutine() noexcept {
+  while (std::optional<Task> task = queue_.Take()) {
+    Execute(std::move(task.value()));
+
+    task_counter_.Decrement();
+  }
+}
+
+void ThreadPool::Execute(Task task) noexcept {
+  try {
+    task();
+  } catch (...) {
+  };
 }
 
 ThreadPool::~ThreadPool() {
@@ -34,12 +40,12 @@ ThreadPool::~ThreadPool() {
 }
 
 void ThreadPool::Submit(Task task) {
-  task_counter_.Inc();
+  task_counter_.Increment();
   queue_.Put(std::move(task));
 }
 
 void ThreadPool::WaitIdle() {
-  task_counter_.WaitCounterOnNull();
+  task_counter_.WaitForZero();
 }
 
 void ThreadPool::Stop() {

@@ -6,41 +6,9 @@
 #include <twist/stdlike/thread.hpp>
 
 #include <vector>
-#include <twist/stdlike/mutex.hpp>
-#include <twist/stdlike/condition_variable.hpp>
+#include <tp/support/task_counter.hpp>
 
 namespace tp {
-
-class TaskCounter {
- public:
-  TaskCounter() = default;
-
-  void Inc() {
-    std::lock_guard<twist::stdlike::mutex> lock(mutex_);
-    counter_++;
-  }
-
-  void Dec() {
-    std::lock_guard<twist::stdlike::mutex> lock(mutex_);
-    counter_--;
-    if (counter_ == 0) {
-      counter_is_not_null_.notify_one();
-    }
-  }
-
-  void WaitCounterOnNull() {
-    std::unique_lock<twist::stdlike::mutex> lock(mutex_);
-    while (counter_ != 0) {
-      counter_is_not_null_.wait(lock);
-    }
-  }
-
- private:
-  twist::stdlike::mutex mutex_;
-  twist::stdlike::condition_variable counter_is_not_null_;
-  int counter_{0};
-};
-
 // Fixed-size pool of worker threads
 
 class ThreadPool {
@@ -64,6 +32,11 @@ class ThreadPool {
 
   // Locates current thread pool from worker thread
   static ThreadPool* Current();
+
+ private:
+  void Execute(Task task) noexcept;
+
+  void WorkerRoutine() noexcept;
 
  private:
   UnboundedBlockingQueue<Task> queue_;
