@@ -1,15 +1,14 @@
 #pragma once
 
+#include <exe/tp/blocking_queue.hpp>
 #include <exe/tp/task.hpp>
-#include <exe/tp/wait_counter.hpp>
 
 #include <twist/stdlike/thread.hpp>
-#include <exe/tp/blocking_queue.hpp>
 
 #include <vector>
+#include <exe/support/task_counter.hpp>
 
 namespace exe::tp {
-
 // Fixed-size pool of worker threads
 
 class ThreadPool {
@@ -22,7 +21,6 @@ class ThreadPool {
   ThreadPool& operator=(const ThreadPool&) = delete;
 
   // Schedules task for execution in one of the worker threads
-  // Do not use directly, use tp::Submit instead
   void Submit(Task task);
 
   // Waits until outstanding work count has reached zero
@@ -36,8 +34,18 @@ class ThreadPool {
   static ThreadPool* Current();
 
  private:
+  void Execute(Task task) noexcept;
+
+  void WorkerRoutine() noexcept;
+
+ private:
+  UnboundedBlockingQueue<Task> queue_;
   std::vector<twist::stdlike::thread> workers_;
-  UnboundedBlockingQueue<Task> task_queue_;
-  WaitCounter enqueued_tasks_counter_;
+  TaskCounter task_counter_;
 };
+
+inline ThreadPool* Current() {
+  return ThreadPool::Current();
+}
+
 }  // namespace exe::tp

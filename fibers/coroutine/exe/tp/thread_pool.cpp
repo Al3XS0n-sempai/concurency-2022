@@ -10,23 +10,29 @@ static twist::util::ThreadLocalPtr<ThreadPool> pool;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-ThreadPool::ThreadPool(size_t count_of_workers) {
-  for (size_t cur_worker = 0; cur_worker < count_of_workers; ++cur_worker) {
+ThreadPool::ThreadPool(size_t workers_count) {
+  for (size_t i = 0; i < workers_count; ++i) {
     workers_.push_back(twist::stdlike::thread([this] {
       pool = this;
-      while (true) {
-        std::optional<Task> task = task_queue_.Take();
-        if (task == std::nullopt) {
-          return;
-        }
-        try {
-          (task.value())();
-        } catch (...) {
-        };
-        enqueued_tasks_counter_.Dec();
-      }
+
+      WorkerRoutine();
     }));
   }
+}
+
+void ThreadPool::WorkerRoutine() noexcept {
+  while (std::optional<Task> task = queue_.Take()) {
+    Execute(std::move(task.value()));
+
+    task_counter_.Decrement();
+  }
+}
+
+void ThreadPool::Execute(Task task) noexcept {
+  try {
+    task();
+  } catch (...) {
+  };
 }
 
 ThreadPool::~ThreadPool() {
@@ -34,19 +40,18 @@ ThreadPool::~ThreadPool() {
 }
 
 void ThreadPool::Submit(Task task) {
-  enqueued_tasks_counter_.Inc();
-
-  task_queue_.Put(std::move(task));
+  task_counter_.Increment();
+  queue_.Put(std::move(task));
 }
 
 void ThreadPool::WaitIdle() {
-  enqueued_tasks_counter_.WaitForNull();
+  task_counter_.WaitForZero();
 }
 
 void ThreadPool::Stop() {
-  task_queue_.Cancel();
-  for (size_t cur_worker = 0; cur_worker < workers_.size(); ++cur_worker) {
-    workers_[cur_worker].join();
+  queue_.Cancel();
+  for (size_t i = 0; i < workers_.size(); ++i) {
+    workers_[i].join();
   }
   workers_.clear();
 }

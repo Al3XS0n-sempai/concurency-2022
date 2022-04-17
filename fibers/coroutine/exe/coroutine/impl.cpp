@@ -5,8 +5,8 @@
 
 namespace exe::coroutine {
 
-CoroutineImpl::CoroutineImpl(Routine routine, wheels::MutableMemView stack) {
-  routine_ = std::move(routine);
+CoroutineImpl::CoroutineImpl(Routine routine, wheels::MutableMemView stack)
+    : routine_(std::move(routine)) {
   callee_ctx_.Setup(stack, this);
 }
 
@@ -14,7 +14,7 @@ void CoroutineImpl::Run() {
   try {
     routine_();
   } catch (...) {
-    exc_ptr_ = std::current_exception();
+    exception_ptr_ = std::current_exception();
   }
   completed_ = true;
   callee_ctx_.ExitTo(caller_ctx_);
@@ -22,8 +22,8 @@ void CoroutineImpl::Run() {
 
 void CoroutineImpl::Resume() {
   caller_ctx_.SwitchTo(callee_ctx_);
-  if (exc_ptr_ != nullptr) {
-    std::rethrow_exception(exc_ptr_);
+  if (exception_ptr_ != nullptr) {
+    std::rethrow_exception(exception_ptr_);
   }
 }
 

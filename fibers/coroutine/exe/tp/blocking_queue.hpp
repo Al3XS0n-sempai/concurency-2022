@@ -8,11 +8,14 @@
 #include <iostream>
 
 namespace exe::tp {
+
+// Unbounded blocking multi-producers/multi-consumers queue
+
 template <typename T>
 class UnboundedBlockingQueue {
  public:
   bool Put(T value) {
-    std::lock_guard<twist::stdlike::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     if (closed_) {
       return false;
     }
@@ -22,7 +25,7 @@ class UnboundedBlockingQueue {
   }
 
   std::optional<T> Take() {
-    std::unique_lock<twist::stdlike::mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     while (queue_.empty()) {
       if (closed_) {
         return std::nullopt;
@@ -44,7 +47,7 @@ class UnboundedBlockingQueue {
 
  private:
   void CloseImpl(bool need_to_clear) {
-    std::lock_guard<twist::stdlike::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     closed_ = true;
     if (need_to_clear) {
       queue_.clear();

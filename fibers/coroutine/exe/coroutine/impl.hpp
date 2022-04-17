@@ -37,7 +37,7 @@ class CoroutineImpl : public ::context::ITrampoline {
   bool completed_{false};
   context::ExecutionContext callee_ctx_;
   context::ExecutionContext caller_ctx_;
-  std::exception_ptr exc_ptr_{nullptr};
+  std::exception_ptr exception_ptr_{nullptr};
 };
 
 }  // namespace exe::coroutine

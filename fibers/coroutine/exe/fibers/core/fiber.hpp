@@ -10,7 +10,9 @@ namespace exe::fibers {
 
 class Fiber {
  public:
-  explicit Fiber(Scheduler* scheduler, Routine routine);
+  explicit Fiber(Scheduler& scheduler, Routine routine);
+
+  ~Fiber();
 
   Scheduler& GetCurrentScheduler();
 
@@ -27,7 +29,7 @@ class Fiber {
  private:
   context::Stack stack_;
   coroutine::CoroutineImpl coroutine_;
-  Scheduler* scheduler_;
+  Scheduler& scheduler_;
 };
 
 }  // namespace exe::fibers

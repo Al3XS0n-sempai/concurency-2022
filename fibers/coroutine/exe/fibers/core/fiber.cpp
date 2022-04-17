@@ -13,19 +13,23 @@ twist::util::ThreadLocalPtr<Fiber> current;
 
 //////////////////////////////////////////////////////////////////////
 
-Fiber::Fiber(Scheduler* scheduler, Routine routine)
+Fiber::Fiber(Scheduler& scheduler, Routine routine)
     : stack_(AllocateStack()),
       coroutine_(std::move(routine), stack_.View()),
       scheduler_(scheduler) {
 }
 
+Fiber::~Fiber() {
+  ReleaseStack(std::move(stack_));
+}
+
 Scheduler& Fiber::GetCurrentScheduler() {
-  return *scheduler_;
+  return scheduler_;
 }
 
 void Fiber::Schedule() {
-  scheduler_->Submit([this] {
-    this->Step();
+  scheduler_.Submit([this] {
+    Step();
   });
 }
 
@@ -38,7 +42,6 @@ void Fiber::Step() {
   coroutine_.Resume();
   current = nullptr;
   if (coroutine_.IsCompleted()) {
-    ReleaseStack(std::move(this->stack_));
     delete this;
     return;
   }
@@ -54,7 +57,7 @@ Fiber& Fiber::Self() {
 // API Implementation
 
 void Go(Scheduler& scheduler, Routine routine) {
-  Fiber* fiber = new Fiber(&scheduler, std::move(routine));
+  Fiber* fiber = new Fiber(scheduler, std::move(routine));
   fiber->Schedule();
 }
 
