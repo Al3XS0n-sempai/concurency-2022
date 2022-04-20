@@ -4,7 +4,7 @@
 
 #include <twist/stdlike/atomic.hpp>
 
-#include <exe/support/safe_queue.hpp>
+#include <exe/support/mpsc_queue.hpp>
 #include <optional>
 
 namespace exe::executors {
@@ -29,7 +29,7 @@ class Strand : public IExecutor {
 
  private:
   IExecutor& executor_;
-  SafeQueue<Task> task_queue_;
+  MPSCQueue<Task> task_queue_;
   twist::stdlike::atomic<int32_t> task_counter_;
 };
 

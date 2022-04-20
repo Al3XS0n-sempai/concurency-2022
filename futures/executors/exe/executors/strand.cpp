@@ -1,5 +1,7 @@
 #include <exe/executors/strand.hpp>
 
+#include <wheels/logging/logging.hpp>
+
 namespace exe::executors {
 
 Strand::Strand(IExecutor& executor) : executor_(executor) {
@@ -27,12 +29,11 @@ void Strand::Schedule() {
 }
 
 void Strand::StrandWork() {
-  SafeQueue<Task> tmp(std::move(task_queue_));
+  task_queue_.FillPop();
 
   int32_t executed = 0;
-  while (std::optional<Task> task = tmp.Pop()) {
+  while (std::optional<Task> task = task_queue_.Pop()) {
     ExecuteHere(std::move(task.value()));
-
     executed++;
   }
 
