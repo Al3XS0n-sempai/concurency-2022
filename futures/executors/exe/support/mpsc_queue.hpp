@@ -23,6 +23,10 @@ class MPSCQueue {
     return pop_stack_.Pop();
   }
 
+  bool Empty() {
+    return push_stack_.Empty() && pop_stack_.Empty();
+  }
+
  private:
   LockFreeStack<T> push_stack_;
   LockFreeStack<T> pop_stack_;
