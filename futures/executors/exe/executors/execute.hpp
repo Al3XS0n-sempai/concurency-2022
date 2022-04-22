@@ -10,6 +10,7 @@ namespace exe::executors {
  *   std::cout << "Hi" << std::endl;
  * });
  */
+// LambdaHandler lambda{f};
 
 template <typename F>
 void Execute(IExecutor& where, F&& f) {

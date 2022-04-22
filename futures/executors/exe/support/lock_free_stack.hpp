@@ -1,15 +1,17 @@
 #pragma once
 
 #include <twist/stdlike/atomic.hpp>
-
+#include <wheels/intrusive/forward_list.hpp>
 #include <optional>
+#include <deque>
+#include <wheels/logging/logging.hpp>
 
 namespace exe::executors {
 
 template <class T>
 class LockFreeStack {
  private:
-  struct Node {
+  struct Node : public wheels::IntrusiveForwardListNode<Node> {
    public:
     Node() = default;
 
@@ -17,77 +19,45 @@ class LockFreeStack {
     }
 
    public:
-    Node* next{nullptr};
     T item;
   };
+
+  using NodeBase = wheels::IntrusiveForwardListNode<Node>;
 
  public:
   LockFreeStack() = default;
 
-  explicit LockFreeStack(Node* head) : head_{head} {
-  }
-
   void Push(T item) {
     Node* new_node = new Node(std::move(item));
-    new_node->next = head_.load(std::memory_order_acquire);
-    while (!head_.compare_exchange_weak(new_node->next, new_node,
-                                        std::memory_order_acq_rel)) {
+    new_node->next_ = head_.load(std::memory_order_relaxed);
+    while (!head_.compare_exchange_weak(new_node->next_, new_node,
+                                        std::memory_order_release,
+                                        std::memory_order_relaxed)) {
     }
-  }
-
-  std::optional<T> Pop() {
-    Node* head = head_.load(std::memory_order_acquire);
-
-    if (head == nullptr) {
-      return std::nullopt;
-    }
-
-    Node* new_head = head->next;
-    while (!head_.compare_exchange_weak(head, new_head,
-                                        std::memory_order_acq_rel)) {
-      if (head == nullptr) {
-        return std::nullopt;
-      }
-
-      new_head = head->next;
-    }
-
-    T top_item = std::move(head->item);
-    delete head;
-
-    return top_item;
   }
 
   bool Empty() {
-    return head_ == nullptr;
+    return head_.load(std::memory_order_relaxed) == nullptr;
   }
 
-  void MoveReversed(LockFreeStack<T>& another) {
-    assert(another.head_.load(std::memory_order_acquire) == nullptr);
-    another.head_.store(head_.exchange(nullptr, std::memory_order_acq_rel),
-                        std::memory_order_release);
-    another.Reverse();
-  }
+  std::deque<T> PopAll() {
+    std::deque<T> result;
 
- private:
-  void Reverse() {
-    Node* prev = nullptr;
-    Node* next = nullptr;
-    Node* cur = head_.load(std::memory_order_acquire);
+    NodeBase* all = head_.exchange(nullptr, std::memory_order_acquire);
+    NodeBase* remaining = all;
 
-    while (cur != nullptr) {
-      next = cur->next;
-
-      cur->next = prev;
-      prev = cur;
-      cur = next;
+    while (remaining) {
+      result.push_back(std::move(remaining->AsItem()->item));
+      remaining = remaining->next_;
+      delete all;
+      all = remaining;
     }
 
-    head_.store(prev, std::memory_order_release);
+    return result;
   }
 
  private:
-  twist::stdlike::atomic<Node*> head_{nullptr};
+  twist::stdlike::atomic<NodeBase*> head_{nullptr};
 };
 
 }  // namespace exe::executors

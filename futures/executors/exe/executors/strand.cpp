@@ -8,7 +8,7 @@ Strand::Strand(IExecutor& executor) : executor_(executor) {
 }
 
 void Strand::Execute(Task task) {
-  task_queue_.Push(std::move(task));
+  tasks_stack_.Push(std::move(task));
 
   if (task_counter_.fetch_add(1, std::memory_order_acq_rel) == 0) {
     Schedule();
@@ -29,12 +29,13 @@ void Strand::Schedule() {
 }
 
 void Strand::StrandWork() {
-  task_queue_.FillPop();
+  std::deque<Task> tasks(tasks_stack_.PopAll());
 
   int32_t executed = 0;
-  while (std::optional<Task> task = task_queue_.Pop()) {
-    ExecuteHere(std::move(task.value()));
+  while (!tasks.empty()) {
+    ExecuteHere(std::move(tasks.back()));
     executed++;
+    tasks.pop_back();
   }
 
   if (task_counter_.fetch_sub(executed, std::memory_order_acq_rel) > executed) {

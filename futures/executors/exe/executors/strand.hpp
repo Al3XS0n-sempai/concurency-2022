@@ -3,8 +3,7 @@
 #include <exe/executors/executor.hpp>
 
 #include <twist/stdlike/atomic.hpp>
-
-#include <exe/support/mpsc_queue.hpp>
+#include <exe/support/lock_free_stack.hpp>
 #include <optional>
 
 namespace exe::executors {
@@ -29,7 +28,7 @@ class Strand : public IExecutor {
 
  private:
   IExecutor& executor_;
-  MPSCQueue<Task> task_queue_;
+  LockFreeStack<Task> tasks_stack_;
   twist::stdlike::atomic<int32_t> task_counter_;
 };
 
