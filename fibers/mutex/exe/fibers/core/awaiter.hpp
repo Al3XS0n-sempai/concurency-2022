@@ -8,19 +8,15 @@
 namespace exe::fibers {
 
 struct IAwaiter {
-  explicit IAwaiter(FiberHandle handler) : handler_(handler) {
-  }
+  virtual ~IAwaiter() = default;
 
   virtual void AfterSuspend() = 0;
 
   virtual void Schedule() = 0;
-
- protected:
-  FiberHandle handler_;
 };
 
 struct YieldAwaiter : IAwaiter {
-  explicit YieldAwaiter(FiberHandle handler) : IAwaiter(handler) {
+  explicit YieldAwaiter(FiberHandle handler) : handler_(handler) {
   }
 
   void AfterSuspend() {
@@ -30,10 +26,13 @@ struct YieldAwaiter : IAwaiter {
   void Schedule() {
     handler_.Schedule();
   }
+
+ private:
+  FiberHandle handler_;
 };
 
 struct FutexAwaiter : IAwaiter, public wheels::IntrusiveListNode<FutexAwaiter> {
-  explicit FutexAwaiter(FiberHandle handler) : IAwaiter(handler) {
+  explicit FutexAwaiter(FiberHandle handler) : handler_(handler) {
     spinlock_.lock();
   }
 
@@ -47,6 +46,7 @@ struct FutexAwaiter : IAwaiter, public wheels::IntrusiveListNode<FutexAwaiter> {
   }
 
  private:
+  FiberHandle handler_;
   exe::support::SpinLock spinlock_;
 };
 

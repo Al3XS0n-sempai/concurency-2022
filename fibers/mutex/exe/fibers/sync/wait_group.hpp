@@ -42,7 +42,7 @@ class WaitGroup {
 
     counter_.fetch_add(counter);
     if (counter_.load() == 0) {
-      cv_.NotifyAll();
+      all_arrived_.NotifyAll();
     }
   }
 
@@ -50,22 +50,22 @@ class WaitGroup {
     Holder hold(flag_, mutex_);
     counter_.fetch_sub(1);
     if (counter_.load() == 0) {
-      cv_.NotifyAll();
+      all_arrived_.NotifyAll();
     }
   }
 
   void Wait() {
     std::unique_lock lock(mutex_);
     while (counter_.load() != 0) {
-      cv_.Wait(lock);
+      all_arrived_.Wait(lock);
     }
   }
 
  private:
-  twist::stdlike::atomic<int> counter_{0};
+  twist::stdlike::atomic<size_t> counter_{0};
   twist::stdlike::atomic<int> flag_{0};
   exe::fibers::Mutex mutex_;
-  exe::fibers::CondVar cv_;
+  exe::fibers::CondVar all_arrived_;
 };
 
 }  // namespace exe::fibers

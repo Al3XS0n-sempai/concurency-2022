@@ -10,21 +10,21 @@ class WaitCounter {
 
   ~WaitCounter() = default;
 
-  void Inc() {
-    std::lock_guard<twist::stdlike::mutex> lock(mutex_);
+  void Increment() {
+    std::lock_guard lock(mutex_);
     counter_++;
   }
 
-  void Dec() {
-    std::lock_guard<twist::stdlike::mutex> lock(mutex_);
+  void Decrement() {
+    std::lock_guard lock(mutex_);
     counter_--;
     if (counter_ == 0) {
       wait_for_null_.notify_one();
     }
   }
 
-  void WaitForNull() {
-    std::unique_lock<twist::stdlike::mutex> lock(mutex_);
+  void WaitForZero() {
+    std::unique_lock lock(mutex_);
     while (counter_ > 0) {
       wait_for_null_.wait(lock);
     }
