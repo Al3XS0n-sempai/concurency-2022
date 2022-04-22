@@ -23,51 +23,45 @@ class QueueSpinLock {
   };
 
  public:
-  class Guard {
+  class Guard : public Node {
     friend class QueueSpinLock;
 
    public:
     explicit Guard(QueueSpinLock& spinlock) : spinlock_(spinlock) {
-      node_ = new Node;
       spinlock_.Acquire(this);
     }
 
     ~Guard() {
       spinlock_.Release(this);
-      delete node_;
     }
 
    private:
     QueueSpinLock& spinlock_;
-    Node* node_;
     twist::util::SpinWait spinner_;
   };
 
  private:
   void Acquire(Guard* guard) {
-    Node* prev_tail = tail_.exchange(guard->node_);
+    Node* prev_tail = tail_.exchange(guard);
 
     if (prev_tail != nullptr) {
-      prev_tail->next.store(guard->node_);
-      while (!guard->node_->owner.load()) {
+      prev_tail->next.store(guard);
+      while (!guard->owner.load()) {
         guard->spinner_.Spin();
       }
     }
   }
 
   void Release(Guard* guard) {
-    Node* expected = guard->node_;
+    Node* expected = guard;
     if (tail_.compare_exchange_strong(expected, nullptr)) {
       return;
     }
 
-    Node* next_in_queue = guard->node_->next.load();
-
-    while (next_in_queue == nullptr) {
-      next_in_queue = guard->node_->next.load();
+    while (guard->next.load() == nullptr) {
     }
 
-    next_in_queue->owner.store(true);
+    guard->next.load()->owner.store(true);
   }
 
  private:
