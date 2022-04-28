@@ -54,9 +54,7 @@ void Fiber::Step() {
   current_fiber = this;
   routine_.Resume();
   current_fiber = nullptr;
-  scheduler_->post([this] {
-    this->Dispatch();
-  });
+  Dispatch();
 }
 
 Fiber& Fiber::Self() {
