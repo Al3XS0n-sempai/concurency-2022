@@ -14,51 +14,53 @@ namespace lockfree {
 template <typename T, size_t Capacity>
 class WorkStealingQueue {
   struct Slot {
-    T* item;
+    twist::stdlike::atomic<T*> item;
   };
 
  public:
   bool TryPush(T* item) {
-    size_t cur_tail = tail_.load();
-    if (cur_tail - head_.load() == Capacity) {
+    size_t cur_tail = tail_.load(std::memory_order_relaxed);
+    if (cur_tail - head_.load(std::memory_order_relaxed) == Capacity) {
       return false;
     }
     cur_tail %= Capacity;
-    Slot* data = buffer_.data();
-    data[cur_tail].item = item;
-    tail_.fetch_add(1);
+    buffer_[cur_tail].item.store(item, std::memory_order_relaxed);
+    tail_.fetch_add(1, std::memory_order_release);
     return true;
   }
 
   // Returns nullptr if queue is empty
   T* TryPop() {
-    size_t my_ind = head_.load(), next;
+    size_t my_ind = head_.load(std::memory_order_relaxed);
+    T* result;
     do {
-      if (my_ind == tail_.load()) {
+      if (my_ind == tail_.load(std::memory_order_relaxed)) {
         return nullptr;
       }
-      next = my_ind + 1;
-
-    } while (!head_.compare_exchange_weak(my_ind, next));
-
-    Slot* data = buffer_.data();
-    T* result = data[my_ind % Capacity].item;
+      result = buffer_[my_ind % Capacity].item.load(std::memory_order_relaxed);
+    } while (!head_.compare_exchange_weak(my_ind, my_ind + 1,
+                                          std::memory_order_acquire,
+                                          std::memory_order_relaxed));
     return result;
   }
 
   // Returns number of tasks
   size_t Grab(std::span<T*> store_buffer) {
-    size_t my_head = head_.load();
+    size_t my_head = head_.load(std::memory_order_relaxed);
     size_t cnt = 0;
-    Slot* data = buffer_.data();
-    while (cnt < store_buffer.size() && my_head + cnt < tail_.load()) {
-      store_buffer[cnt] = data[(my_head + cnt) % Capacity].item;
+
+    while (cnt < store_buffer.size() &&
+           my_head + cnt < tail_.load(std::memory_order_acquire)) {
+      store_buffer[cnt] = buffer_[(my_head + cnt) % Capacity].item.load(
+          std::memory_order_relaxed);
       cnt++;
     }
 
     size_t cur_head = my_head;
     while (cur_head < my_head + cnt &&
-           !head_.compare_exchange_weak(cur_head, my_head + cnt)) {
+           !head_.compare_exchange_weak(cur_head, my_head + cnt,
+                                        std::memory_order_relaxed,
+                                        std::memory_order_relaxed)) {
     }
     if (my_head + cnt <= cur_head) {
       return 0;
